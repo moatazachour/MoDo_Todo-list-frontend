@@ -427,6 +427,16 @@ ModalUI.modalClose.addEventListener("click", () => {
   ModalUI.modalOverlay.classList.remove("open");
 });
 
+ModalUI.modalCancel.addEventListener("click", () => {
+  ModalUI.modalOverlay.classList.remove("open");
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    ModalUI.modalOverlay.classList.remove("open");
+  }
+});
+
 function createStatusOption(id, statusName) {
   const statusOption = document.createElement("option");
   statusOption.value = statusName;
@@ -470,6 +480,7 @@ function openAddModal() {
   ModalUI.modalTitle.textContent = "Add Task";
   ModalUI.modalSubmit.querySelector("span").textContent = "Add Task";
   ModalUI.modalSubmit.querySelector("svg").style.display = "";
+  ModalUI.modalError.style.display = "none";
   emptyModal();
   loadStatuses();
 }
@@ -480,6 +491,8 @@ async function openEditModal(taskId) {
   ModalUI.modalTitle.textContent = "Edit Task";
   ModalUI.modalSubmit.querySelector("span").textContent = "Save Changes";
   ModalUI.modalSubmit.querySelector("svg").style.display = "none";
+  ModalUI.modalError.style.display = "none";
+
   loadStatuses();
   loadModalData(taskId);
 }
@@ -489,11 +502,11 @@ function getTaskFromForm() {
   task.taskID = parseInt(ModalUI.taskId.value) || null;
 
   const title = ModalUI.taskTitle.value.trim();
-  // if (!title) {
-  //   ModalUI.modalError.style.display = "";
-  //   ModalUI.modalError.textContent = "Title is required!";
-  //   return null;
-  // }
+  if (!title) {
+    ModalUI.modalError.style.display = "flex";
+    ModalUI.modalError.textContent = "Title is required!";
+    return null;
+  }
   task.title = title;
 
   task.description = ModalUI.taskDescription.value.trim();
@@ -509,6 +522,8 @@ function getTaskFromForm() {
 
 async function addTask() {
   const newTask = getTaskFromForm();
+
+  if (!newTask) return false;
 
   try {
     const response = await fetch(`${API_BASE}/Tasks`, {
@@ -528,15 +543,19 @@ async function addTask() {
     if (!response.ok) {
       const err = await response.text();
       showToast(err || "Task Adding Failed", "error");
+      return false;
     }
     return true;
   } catch (error) {
     showToast(error, "error");
+    return false;
   }
 }
 
 async function updateTask() {
   const updatedTask = getTaskFromForm();
+
+  if (!updatedTask) return false;
 
   try {
     const response = await fetch(`${API_BASE}/Tasks/${updatedTask.taskID}`, {
@@ -555,19 +574,25 @@ async function updateTask() {
     if (!response.ok) {
       const err = await response.text();
       showToast(err || "Task Update Failed", "error");
-      return;
+      return false;
     }
+
+    return true;
   } catch (error) {
     showToast(error, "error");
+    return false;
   }
 }
 
-function submitTask() {
+async function submitTask(event) {
+  event.preventDefault();
   const mode = ModalUI.taskForm.dataset.mode;
-  let closeModal = true;
-  if (mode === "add") addTask();
+  let submitSucceeded = true;
+  if (mode === "add") submitSucceeded = await addTask();
 
-  if (mode === "edit") updateTask();
+  if (mode === "edit") submitSucceeded = await updateTask();
+
+  if (!submitSucceeded) return;
 
   ModalUI.modalOverlay.classList.remove("open");
   const currentNav = document.querySelector(".nav-item.active");
