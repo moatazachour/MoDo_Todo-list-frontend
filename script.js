@@ -1,3 +1,7 @@
+// =============================================================================
+// CONSTANTS & GLOBAL STATE
+// =============================================================================
+
 const ICONS = {
   success: `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
   error: `<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
@@ -7,8 +11,11 @@ const ICONS = {
 const API_BASE = "http://localhost:5047/api";
 
 let currentUserObj;
-
 let allTasks = [];
+
+// =============================================================================
+// UI ELEMENT REFERENCES
+// =============================================================================
 
 const AuthUI = {
   authScreen: document.querySelector("#auth-screen"),
@@ -68,12 +75,12 @@ const MainUI = {
   btnLogout: document.querySelector("#btn-logout"),
   sidebarUserTile: document.querySelector("#sidebar-user-tile"),
 
-  // Main Content
-  // Header
+  // Main Content — Header
   viewTitle: document.querySelector("#view-title"),
   searchInput: document.querySelector("#search-input"),
   btnAddTask: document.querySelector("#btn-add-task"),
-  // Task Area
+
+  // Main Content — Task Area
   loadingSpinner: document.querySelector("#loading-spinner"),
   emptyState: document.querySelector("#empty-state"),
   taskList: document.querySelector("#task-list"),
@@ -105,6 +112,10 @@ const ConfirmUI = {
 
 const toastContainer = document.querySelector("#toast-container");
 
+// =============================================================================
+// TOAST NOTIFICATIONS
+// =============================================================================
+
 function showToast(message, type = "success", duration = 5000) {
   const toast = document.createElement("div");
   toast.classList.add("toast", type);
@@ -128,15 +139,9 @@ function showToast(message, type = "success", duration = 5000) {
   }, duration);
 }
 
-function toggleAuthTabs() {
-  AuthUI.tabLogin.classList.toggle("active");
-  AuthUI.tabSignup.classList.toggle("active");
-  AuthUI.formLogin.classList.toggle("active");
-  AuthUI.formSignup.classList.toggle("active");
-}
-
-AuthUI.tabLogin.addEventListener("click", toggleAuthTabs);
-AuthUI.tabSignup.addEventListener("click", toggleAuthTabs);
+// =============================================================================
+// AUTH — VALIDATION
+// =============================================================================
 
 function validateUsername(username) {
   if (!username) {
@@ -152,7 +157,6 @@ function validateEmail(email) {
     showToast("Valid email is required", "error");
     return false;
   }
-
   // TODO: Database checking if email already exists
   return true;
 }
@@ -178,6 +182,17 @@ function validateLoginInputs(username, password) {
   const isPasswordValid = validatePassword(password);
 
   return isUsernameValid && isPasswordValid;
+}
+
+// =============================================================================
+// AUTH — SIGN UP / LOGIN / LOGOUT
+// =============================================================================
+
+function toggleAuthTabs() {
+  AuthUI.tabLogin.classList.toggle("active");
+  AuthUI.tabSignup.classList.toggle("active");
+  AuthUI.formLogin.classList.toggle("active");
+  AuthUI.formSignup.classList.toggle("active");
 }
 
 async function signUp(event) {
@@ -284,10 +299,9 @@ function logout() {
   localStorage.removeItem("currentUser");
 }
 
-ProfileUI.profileClose.addEventListener("click", () => {
-  ProfileUI.profileOverlay.classList.remove("open");
-  ProfileUI.profilePanel.classList.remove("open");
-});
+// =============================================================================
+// PROFILE PANEL
+// =============================================================================
 
 function emptyProfilePanel() {
   ProfileUI.profileAvatar.textContent = "?";
@@ -409,21 +423,59 @@ async function updateProfile(event) {
   }
 }
 
-ProfileUI.profileForm.addEventListener("submit", updateProfile);
-
-MainUI.sidebarUserTile.addEventListener("click", openProfilePanel);
-AuthUI.formSignup.addEventListener("submit", signUp);
-AuthUI.formLogin.addEventListener("submit", login);
-
-MainUI.btnLogout.addEventListener("click", logout);
+// =============================================================================
+// APP BOOTSTRAP & SIDEBAR
+// =============================================================================
 
 function loadUserSidebar(currentUser) {
   MainUI.userDisplayName.textContent = currentUser.userName;
   MainUI.userDisplayEmail.textContent = currentUser.email;
 
   const usernameFirstInitials = currentUser.userName.slice(0, 2).toUpperCase();
-
   MainUI.userAvatarInitials.textContent = usernameFirstInitials;
+}
+
+function load() {
+  const currentUser = localStorage.getItem("currentUser");
+  if (!currentUser) return;
+
+  currentUserObj = JSON.parse(currentUser);
+
+  AuthUI.authScreen.style.setProperty("display", "none");
+  MainUI.appScreen.classList.add("visible");
+
+  loadUserSidebar(currentUserObj);
+  firstTasksLoad();
+  navigateTo(document.querySelector(".nav-item.active"));
+}
+
+load();
+
+// =============================================================================
+// TASKS — FETCHING & BADGE COUNTS
+// =============================================================================
+
+async function firstTasksLoad() {
+  let fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
+
+  try {
+    const response = await fetch(fetchUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Fetch Tasks failed", "error");
+      console.log(err);
+      return;
+    }
+
+    allTasks = await response.json();
+    updateBadges();
+  } catch (error) {
+    showToast(error, "error");
+  }
 }
 
 function updateBadges() {
@@ -441,7 +493,6 @@ function updateBadges() {
       new Date(task.dueDate).toLocaleDateString() ===
       tomorrow.toLocaleDateString(),
   );
-
   let earlierTasks = allTasks.filter((task) => new Date(task.dueDate) < today);
   let importantTasks = allTasks.filter((task) => task.isImportant);
 
@@ -450,53 +501,6 @@ function updateBadges() {
   MainUI.badgeTomorrow.textContent = tomorrowTasks.length;
   MainUI.badgeEarlier.textContent = earlierTasks.length;
   MainUI.badgeImportant.textContent = importantTasks.length;
-}
-
-async function firstTasksLoad() {
-  let fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
-
-  try {
-    const response = await fetch(fetchUrl, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      showToast(err || "Fetch Tasks failed", "error");
-      console.log(err);
-
-      return;
-    }
-
-    allTasks = await response.json();
-    updateBadges();
-  } catch (error) {
-    showToast(error, "error");
-  }
-}
-
-function load() {
-  const currentUser = localStorage.getItem("currentUser");
-  if (!currentUser) return;
-
-  currentUserObj = JSON.parse(currentUser);
-
-  AuthUI.authScreen.style.setProperty("display", "none");
-  MainUI.appScreen.classList.add("visible");
-
-  loadUserSidebar(currentUserObj);
-  firstTasksLoad();
-  navigateTo(document.querySelector(".nav-item.active"));
-}
-load();
-
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 async function getTaskById(taskId) {
@@ -515,6 +519,54 @@ async function getTaskById(taskId) {
     return await response.json();
   } catch (error) {}
 }
+
+async function loadTasks(typeOfLoad) {
+  let fetchUrl;
+
+  switch (typeOfLoad) {
+    case "all":
+      fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
+      break;
+    case "today":
+      fetchUrl = `${API_BASE}/Tasks/Today/${currentUserObj.id}`;
+      break;
+    case "tomorrow":
+      fetchUrl = `${API_BASE}/Tasks/Tomorrow/${currentUserObj.id}`;
+      break;
+    case "earlier":
+      fetchUrl = `${API_BASE}/Tasks/Earlier/${currentUserObj.id}`;
+      break;
+    case "important":
+      fetchUrl = `${API_BASE}/Tasks/Important/${currentUserObj.id}`;
+      break;
+    default:
+      fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
+      break;
+  }
+
+  try {
+    const response = await fetch(fetchUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Fetch Tasks failed", "error");
+      console.log(err);
+      return;
+    }
+
+    const tasks = await response.json();
+    renderTasks(tasks);
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+// =============================================================================
+// TASKS — TOGGLING STATE (IMPORTANT / COMPLETE)
+// =============================================================================
 
 async function toggleImportantState(taskId) {
   try {
@@ -578,19 +630,9 @@ async function toggleCompleteState(taskId) {
   }
 }
 
-ModalUI.modalClose.addEventListener("click", () => {
-  ModalUI.modalOverlay.classList.remove("open");
-});
-
-ModalUI.modalCancel.addEventListener("click", () => {
-  ModalUI.modalOverlay.classList.remove("open");
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    ModalUI.modalOverlay.classList.remove("open");
-  }
-});
+// =============================================================================
+// TASKS — ADD / EDIT MODAL
+// =============================================================================
 
 function createStatusOption(id, statusName) {
   const statusOption = document.createElement("option");
@@ -744,7 +786,6 @@ async function submitTask(event) {
   const mode = ModalUI.taskForm.dataset.mode;
   let submitSucceeded = true;
   if (mode === "add") submitSucceeded = await addTask();
-
   if (mode === "edit") submitSucceeded = await updateTask();
 
   if (!submitSucceeded) return;
@@ -755,7 +796,9 @@ async function submitTask(event) {
   firstTasksLoad();
 }
 
-ModalUI.taskForm.addEventListener("submit", submitTask);
+// =============================================================================
+// TASKS — DELETE
+// =============================================================================
 
 let currentTaskIdToDelete;
 
@@ -786,28 +829,17 @@ async function deleteTask(taskId) {
   }
 }
 
-ConfirmUI.confirmDelete.addEventListener("click", () =>
-  deleteTask(currentTaskIdToDelete),
-);
+// =============================================================================
+// TASKS — RENDERING & FILTERING
+// =============================================================================
 
-ConfirmUI.confirmCancel.addEventListener("click", () => {
-  ConfirmUI.confirmOverlay.classList.remove("open");
-});
-
-MainUI.taskList.addEventListener("click", (event) => {
-  const btn = event.target.closest("[data-action]");
-  if (!btn) return;
-
-  const action = btn.dataset.action;
-  const taskId = btn.closest(".task-card").dataset.taskId;
-
-  if (action === "toggle-important") toggleImportantState(taskId);
-  if (action === "toggle-complete") toggleCompleteState(taskId);
-  if (action === "edit") openEditModal(taskId);
-  if (action === "delete") openDeleteConfirm(taskId);
-});
-
-MainUI.btnAddTask.addEventListener("click", openAddModal);
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 function renderTasks(tasks) {
   MainUI.loadingSpinner.style.display = "none";
@@ -838,90 +870,9 @@ function renderTasks(tasks) {
   });
 }
 
-async function loadTasks(typeOfLoad) {
-  let fetchUrl;
-
-  switch (typeOfLoad) {
-    case "all":
-      fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
-      break;
-    case "today":
-      fetchUrl = `${API_BASE}/Tasks/Today/${currentUserObj.id}`;
-      break;
-    case "tomorrow":
-      fetchUrl = `${API_BASE}/Tasks/Tomorrow/${currentUserObj.id}`;
-      break;
-    case "earlier":
-      fetchUrl = `${API_BASE}/Tasks/Earlier/${currentUserObj.id}`;
-      break;
-    case "important":
-      fetchUrl = `${API_BASE}/Tasks/Important/${currentUserObj.id}`;
-      break;
-    default:
-      fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
-      break;
-  }
-
-  try {
-    const response = await fetch(fetchUrl, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      showToast(err || "Fetch Tasks failed", "error");
-      console.log(err);
-
-      return;
-    }
-
-    const tasks = await response.json();
-    renderTasks(tasks);
-  } catch (error) {
-    showToast(error, "error");
-  }
-}
-
-async function navigateTo(element) {
-  let typeOfLoad;
-
-  switch (element) {
-    case MainUI.navAll:
-      typeOfLoad = "all";
-      break;
-
-    case MainUI.navToday:
-      typeOfLoad = "today";
-      break;
-
-    case MainUI.navTomorrow:
-      typeOfLoad = "tomorrow";
-      break;
-
-    case MainUI.navEarlier:
-      typeOfLoad = "earlier";
-      break;
-
-    case MainUI.navImportant:
-      typeOfLoad = "important";
-      break;
-
-    default:
-      typeOfLoad = "all";
-      break;
-  }
-
-  document.querySelector(".nav-item.active").classList.remove("active");
-  element.classList.add("active");
-  MainUI.viewTitle.textContent = element.textContent.trim().slice(0, -1);
-  MainUI.searchInput.value = "";
-  await loadTasks(typeOfLoad);
-}
-
+// Helper filters used by both navigation and search
 function getTodayTasks(allTasks) {
   let today = new Date();
-
   return allTasks.filter(
     (task) =>
       new Date(task.dueDate).toLocaleDateString() ===
@@ -933,7 +884,6 @@ function getTomorrowsTasks(allTasks) {
   let today = new Date();
   let tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
-
   return allTasks.filter(
     (task) =>
       new Date(task.dueDate).toLocaleDateString() ===
@@ -950,6 +900,7 @@ function getImportantTasks(allTasks) {
   return allTasks.filter((task) => task.isImportant);
 }
 
+// Re-renders visible task list based on active nav + current search query
 function render() {
   const q = MainUI.searchInput.value.trim();
   let tasksToFilter;
@@ -960,30 +911,24 @@ function render() {
     case MainUI.navAll:
       tasksToFilter = allTasks;
       break;
-
     case MainUI.navToday:
       tasksToFilter = getTodayTasks(allTasks);
       break;
-
     case MainUI.navTomorrow:
       tasksToFilter = getTomorrowsTasks(allTasks);
       break;
-
     case MainUI.navEarlier:
       tasksToFilter = getEarlierTasks(allTasks);
       break;
-
     case MainUI.navImportant:
       tasksToFilter = getImportantTasks(allTasks);
       break;
-
     default:
       tasksToFilter = allTasks;
       break;
   }
 
   const query = q.toLowerCase();
-
   filtered = tasksToFilter.filter((task) =>
     task.title.toLowerCase().includes(query),
   );
@@ -991,9 +936,101 @@ function render() {
   renderTasks(filtered);
 }
 
+// =============================================================================
+// NAVIGATION
+// =============================================================================
+
+async function navigateTo(element) {
+  let typeOfLoad;
+
+  switch (element) {
+    case MainUI.navAll:
+      typeOfLoad = "all";
+      break;
+    case MainUI.navToday:
+      typeOfLoad = "today";
+      break;
+    case MainUI.navTomorrow:
+      typeOfLoad = "tomorrow";
+      break;
+    case MainUI.navEarlier:
+      typeOfLoad = "earlier";
+      break;
+    case MainUI.navImportant:
+      typeOfLoad = "important";
+      break;
+    default:
+      typeOfLoad = "all";
+      break;
+  }
+
+  document.querySelector(".nav-item.active").classList.remove("active");
+  element.classList.add("active");
+  MainUI.viewTitle.textContent = element.textContent.trim().slice(0, -1);
+  MainUI.searchInput.value = "";
+  await loadTasks(typeOfLoad);
+}
+
+// =============================================================================
+// EVENT LISTENERS
+// =============================================================================
+
+// --- Auth ---
+AuthUI.tabLogin.addEventListener("click", toggleAuthTabs);
+AuthUI.tabSignup.addEventListener("click", toggleAuthTabs);
+AuthUI.formSignup.addEventListener("submit", signUp);
+AuthUI.formLogin.addEventListener("submit", login);
+MainUI.btnLogout.addEventListener("click", logout);
+
+// --- Profile ---
+MainUI.sidebarUserTile.addEventListener("click", openProfilePanel);
+ProfileUI.profileClose.addEventListener("click", () => {
+  ProfileUI.profileOverlay.classList.remove("open");
+  ProfileUI.profilePanel.classList.remove("open");
+});
+ProfileUI.profileForm.addEventListener("submit", updateProfile);
+
+// --- Task Modal ---
+MainUI.btnAddTask.addEventListener("click", openAddModal);
+ModalUI.taskForm.addEventListener("submit", submitTask);
+ModalUI.modalClose.addEventListener("click", () => {
+  ModalUI.modalOverlay.classList.remove("open");
+});
+ModalUI.modalCancel.addEventListener("click", () => {
+  ModalUI.modalOverlay.classList.remove("open");
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    ModalUI.modalOverlay.classList.remove("open");
+  }
+});
+
+// --- Delete Confirm ---
+ConfirmUI.confirmDelete.addEventListener("click", () =>
+  deleteTask(currentTaskIdToDelete),
+);
+ConfirmUI.confirmCancel.addEventListener("click", () => {
+  ConfirmUI.confirmOverlay.classList.remove("open");
+});
+
+// --- Task List (delegated) ---
+MainUI.taskList.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-action]");
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const taskId = btn.closest(".task-card").dataset.taskId;
+
+  if (action === "toggle-important") toggleImportantState(taskId);
+  if (action === "toggle-complete") toggleCompleteState(taskId);
+  if (action === "edit") openEditModal(taskId);
+  if (action === "delete") openDeleteConfirm(taskId);
+});
+
+// --- Search ---
 MainUI.searchInput.addEventListener("input", render);
 
-// Navigation Events
+// --- Sidebar Navigation ---
 MainUI.navAll.addEventListener("click", () => navigateTo(MainUI.navAll));
 MainUI.navToday.addEventListener("click", () => navigateTo(MainUI.navToday));
 MainUI.navTomorrow.addEventListener("click", () =>
