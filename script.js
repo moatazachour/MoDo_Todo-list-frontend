@@ -1,0 +1,563 @@
+const ICONS = {
+  success: `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
+  error: `<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  info: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+};
+
+const API_BASE = "http://localhost:5047/api";
+
+let currentUserObj;
+
+let allTasks = [];
+
+const AuthUI = {
+  authScreen: document.querySelector("#auth-screen"),
+  // Tabs
+  tabLogin: document.querySelector("#tab-login"),
+  tabSignup: document.querySelector("#tab-signup"),
+  // Login Form
+  formLogin: document.querySelector("#form-login"),
+  loginUsername: document.querySelector("#login-username"),
+  loginPassword: document.querySelector("#login-password"),
+  btnLogin: document.querySelector("#btn-login"),
+  // SignUp Form
+  formSignup: document.querySelector("#form-signup"),
+  signupUsername: document.querySelector("#signup-username"),
+  signupEmail: document.querySelector("#signup-email"),
+  signupPassword: document.querySelector("#signup-password"),
+  btnSignup: document.querySelector("#btn-signup"),
+};
+
+const MainUI = {
+  appScreen: document.querySelector("#app"),
+
+  // Sidebar
+  navAll: document.querySelector("#nav-all"),
+  badgeAll: document.querySelector("#badge-all"),
+  navToday: document.querySelector("#nav-today"),
+  badgeToday: document.querySelector("#badge-today"),
+  navTomorrow: document.querySelector("#nav-tomorrow"),
+  badgeTomorrow: document.querySelector("#badge-tomorrow"),
+  navEarlier: document.querySelector("#nav-earlier"),
+  badgeEarlier: document.querySelector("#badge-earlier"),
+  navImportant: document.querySelector("#nav-important"),
+  badgeImportant: document.querySelector("#badge-important"),
+  userAvatarInitials: document.querySelector("#user-avatar-initials"),
+  userDisplayName: document.querySelector("#user-display-name"),
+  userDisplayEmail: document.querySelector("#user-display-email"),
+  btnLogout: document.querySelector("#btn-logout"),
+
+  // Main Content
+  // Header
+  viewTitle: document.querySelector("#view-title"),
+  searchInput: document.querySelector("#search-input"),
+  btnAddTask: document.querySelector("#btn-add-task"),
+  // Task Area
+  loadingSpinner: document.querySelector("#loading-spinner"),
+  emptyState: document.querySelector("#empty-state"),
+  taskList: document.querySelector("#task-list"),
+  taskCardTemplate: document.querySelector("#task-card-tpl"),
+  btnIsImportant: document.querySelector(".btn-icon.star"),
+};
+
+const ModalUI = {
+  modalOverlay: document.querySelector("#modal-overlay"),
+  modalTitle: document.querySelector("#modal-heading"),
+  modalClose: document.querySelector("#modal-close"),
+};
+
+const toastContainer = document.querySelector("#toast-container");
+
+function showToast(message, type = "success", duration = 5000) {
+  const toast = document.createElement("div");
+  toast.classList.add("toast", type);
+
+  const toastIcon = document.createElement("div");
+  toastIcon.classList.add("toast-icon");
+  toastIcon.innerHTML = ICONS[type] ?? ICONS.info;
+
+  const toastMessage = document.createElement("span");
+  toastMessage.textContent = message;
+
+  // Icon goes inside toast, not alongside it
+  toast.appendChild(toastIcon);
+  toast.appendChild(toastMessage);
+  toastContainer.appendChild(toast);
+
+  // Auto-remove with the toastOut animation
+  setTimeout(() => {
+    toast.classList.add("removing");
+    toast.addEventListener("animationend", () => toast.remove());
+  }, duration);
+}
+
+function toggleAuthTabs() {
+  AuthUI.tabLogin.classList.toggle("active");
+  AuthUI.tabSignup.classList.toggle("active");
+  AuthUI.formLogin.classList.toggle("active");
+  AuthUI.formSignup.classList.toggle("active");
+}
+
+AuthUI.tabLogin.addEventListener("click", toggleAuthTabs);
+AuthUI.tabSignup.addEventListener("click", toggleAuthTabs);
+
+function validateUsername(username) {
+  if (!username) {
+    showToast("Username is empty!", "error");
+    return false;
+  }
+  // TODO: Database checking if username already exists
+  return true;
+}
+
+function validateEmail(email) {
+  if (!email || !email.includes("@")) {
+    showToast("Valid email is required", "error");
+    return false;
+  }
+
+  // TODO: Database checking if email already exists
+  return true;
+}
+
+function validatePassword(password) {
+  if (!password) {
+    showToast("Password is empty!", "error");
+    return false;
+  }
+  return true;
+}
+
+function validateSigninInputs(username, email, password) {
+  const isUsernameValid = validateUsername(username);
+  const isEmailValid = validateEmail(email);
+  const isPasswordValid = validatePassword(password);
+
+  return isUsernameValid && isEmailValid && isPasswordValid;
+}
+
+function validateLoginInputs(username, password) {
+  const isUsernameValid = validateUsername(username);
+  const isPasswordValid = validatePassword(password);
+
+  return isUsernameValid && isPasswordValid;
+}
+
+async function signUp(event) {
+  event.preventDefault();
+  const username = AuthUI.signupUsername.value.trim();
+  const email = AuthUI.signupEmail.value.trim();
+  const password = AuthUI.signupPassword.value.trim();
+
+  if (!validateSigninInputs(username, email, password)) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/Users/Signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userName: username,
+        password: password,
+        email: email,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Signup failed", "error");
+      return;
+    }
+
+    const data = await response.json();
+
+    const newUser = {
+      id: data?.userID,
+      userName: data.userName,
+      password: data.password,
+      email: data.email,
+    };
+
+    showToast("Account created!", "success");
+
+    localStorage.setItem("currentUser", JSON.stringify(newUser));
+    currentUserObj = newUser;
+    AuthUI.authScreen.style.setProperty("display", "none");
+    MainUI.appScreen.classList.add("visible");
+    load();
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+async function login(event) {
+  event.preventDefault();
+  const username = AuthUI.loginUsername.value.trim();
+  const password = AuthUI.loginPassword.value.trim();
+
+  if (!validateLoginInputs(username, password)) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/Users/Login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userName: username,
+        password: password,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Login failed", "error");
+      return;
+    }
+
+    const data = await response.json();
+
+    const loggedUser = {
+      id: data.userID,
+      userName: data.userName,
+      password: data.password,
+      email: data.email,
+    };
+
+    showToast(`Welcome Back ${loggedUser.userName}!`, "success");
+
+    localStorage.setItem("currentUser", JSON.stringify(loggedUser));
+    currentUserObj = loggedUser;
+    AuthUI.authScreen.style.setProperty("display", "none");
+    MainUI.appScreen.classList.add("visible");
+    load();
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+function logout() {
+  AuthUI.authScreen.style.setProperty("display", "flex");
+  MainUI.appScreen.classList.remove("visible");
+
+  const currentUser = localStorage.getItem("currentUser");
+  if (!currentUser) return;
+
+  const userObj = JSON.parse(currentUser);
+  AuthUI.loginUsername.value = userObj.userName;
+  AuthUI.loginPassword.value = userObj.password;
+
+  localStorage.removeItem("currentUser");
+}
+
+AuthUI.formSignup.addEventListener("submit", signUp);
+AuthUI.formLogin.addEventListener("submit", login);
+
+MainUI.btnLogout.addEventListener("click", logout);
+
+function loadUserSidebar(currentUser) {
+  MainUI.userDisplayName.textContent = currentUser.userName;
+  MainUI.userDisplayEmail.textContent = currentUser.email;
+
+  const usernameFirstInitials = currentUser.userName.slice(0, 2).toUpperCase();
+
+  MainUI.userAvatarInitials.textContent = usernameFirstInitials;
+}
+
+function updateBadges() {
+  let today = new Date();
+  let tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  let todaysTasks = allTasks.filter(
+    (task) =>
+      new Date(task.dueDate).toLocaleDateString() ===
+      today.toLocaleDateString(),
+  );
+  let tomorrowTasks = allTasks.filter(
+    (task) =>
+      new Date(task.dueDate).toLocaleDateString() ===
+      tomorrow.toLocaleDateString(),
+  );
+
+  let earlierTasks = allTasks.filter((task) => new Date(task.dueDate) < today);
+  let importantTasks = allTasks.filter((task) => task.isImportant);
+
+  MainUI.badgeAll.textContent = allTasks.length;
+  MainUI.badgeToday.textContent = todaysTasks.length;
+  MainUI.badgeTomorrow.textContent = tomorrowTasks.length;
+  MainUI.badgeEarlier.textContent = earlierTasks.length;
+  MainUI.badgeImportant.textContent = importantTasks.length;
+}
+
+async function firstTasksLoad() {
+  let fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
+
+  try {
+    const response = await fetch(fetchUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Fetch Tasks failed", "error");
+      console.log(err);
+
+      return;
+    }
+
+    allTasks = await response.json();
+    updateBadges();
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+function load() {
+  const currentUser = localStorage.getItem("currentUser");
+  if (!currentUser) return;
+
+  currentUserObj = JSON.parse(currentUser);
+
+  AuthUI.authScreen.style.setProperty("display", "none");
+  MainUI.appScreen.classList.add("visible");
+
+  loadUserSidebar(currentUserObj);
+  firstTasksLoad();
+  navigateTo(document.querySelector(".nav-item.active"));
+}
+load();
+
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+async function getTaskById(taskId) {
+  try {
+    const response = await fetch(`${API_BASE}/Tasks/${taskId}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response) {
+      const err = await response.text();
+      showToast(err || "Can't fetch the current task.");
+      return;
+    }
+
+    return await response.json();
+  } catch (error) {}
+}
+
+async function toggleImportantState(taskId) {
+  try {
+    const currentTask = await getTaskById(taskId);
+
+    const response = await fetch(`${API_BASE}/Tasks/${taskId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskID: taskId,
+        title: currentTask.title,
+        description: currentTask.description ?? "",
+        dueDate: currentTask.dueDate,
+        isImportant: !currentTask.isImportant,
+        statusID: currentTask.statusID,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Task Update Failed", "error");
+      return;
+    }
+
+    const currentNav = document.querySelector(".nav-item.active");
+    navigateTo(currentNav);
+    firstTasksLoad();
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+async function toggleCompleteState(taskId) {
+  try {
+    const currentTask = await getTaskById(taskId);
+
+    const response = await fetch(`${API_BASE}/Tasks/${taskId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskID: taskId,
+        title: currentTask.title,
+        description: currentTask.description ?? "",
+        dueDate: currentTask.dueDate,
+        isImportant: currentTask.isImportant,
+        statusID: currentTask.statusID === 1 ? 2 : 1,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Task Update Failed", "error");
+      return;
+    }
+
+    const currentNav = document.querySelector(".nav-item.active");
+    navigateTo(currentNav);
+    firstTasksLoad();
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+ModalUI.modalClose.addEventListener("click", () => {
+  ModalUI.modalOverlay.classList.remove("open");
+});
+
+async function loadModalData(taskId) {
+  const currentTask = await getTaskById(taskId);
+}
+
+async function openEditModal(taskId) {
+  ModalUI.modalOverlay.classList.add("open");
+  ModalUI.modalTitle.textContent = "Edit Task";
+  loadModalData(taskId);
+}
+
+MainUI.taskList.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-action]");
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const taskId = btn.closest(".task-card").dataset.taskId;
+
+  if (action === "toggle-important") toggleImportantState(taskId);
+  if (action === "toggle-complete") toggleCompleteState(taskId);
+  if (action === "edit") openEditModal(taskId);
+  if (action === "delete") openDeleteConfirm(taskId);
+});
+
+function renderTasks(tasks) {
+  MainUI.loadingSpinner.style.display = "none";
+  const taskCount = tasks.length;
+  document.querySelector(".nav-item.active .nav-badge").textContent = taskCount;
+  if (taskCount === 0) {
+    MainUI.emptyState.style.display = "flex";
+    return;
+  }
+
+  MainUI.emptyState.style.display = "none";
+  MainUI.taskList.innerHTML = "";
+
+  tasks.forEach((task) => {
+    const clone = MainUI.taskCardTemplate.content.cloneNode(true);
+    const card = clone.querySelector(".task-card");
+    card.dataset.taskId = task.taskID;
+    if (task.statusName === "Completed")
+      card.querySelector(".task-check").classList.add("done");
+    card.querySelector(".task-title").textContent = task.title;
+    card.querySelector(".task-description").textContent = task.description;
+    card.querySelector(".task-tag.due").append(formatDate(task.dueDate));
+    card.querySelector(".task-status").textContent = task.statusName;
+    if (task.isImportant)
+      card.querySelector(".btn-icon.star").classList.add("active");
+
+    MainUI.taskList.appendChild(clone);
+  });
+}
+
+async function loadTasks(typeOfLoad) {
+  let fetchUrl;
+
+  switch (typeOfLoad) {
+    case "all":
+      fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
+      break;
+    case "today":
+      fetchUrl = `${API_BASE}/Tasks/Today/${currentUserObj.id}`;
+      break;
+    case "tomorrow":
+      fetchUrl = `${API_BASE}/Tasks/Tomorrow/${currentUserObj.id}`;
+      break;
+    case "earlier":
+      fetchUrl = `${API_BASE}/Tasks/Earlier/${currentUserObj.id}`;
+      break;
+    case "important":
+      fetchUrl = `${API_BASE}/Tasks/Important/${currentUserObj.id}`;
+      break;
+    default:
+      fetchUrl = `${API_BASE}/Tasks/All/${currentUserObj.id}`;
+      break;
+  }
+
+  try {
+    const response = await fetch(fetchUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Fetch Tasks failed", "error");
+      console.log(err);
+
+      return;
+    }
+
+    const tasks = await response.json();
+    renderTasks(tasks);
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+async function navigateTo(element) {
+  let typeOfLoad;
+
+  switch (element) {
+    case MainUI.navAll:
+      typeOfLoad = "all";
+      break;
+
+    case MainUI.navToday:
+      typeOfLoad = "today";
+      break;
+
+    case MainUI.navTomorrow:
+      typeOfLoad = "tomorrow";
+      break;
+
+    case MainUI.navEarlier:
+      typeOfLoad = "earlier";
+      break;
+
+    case MainUI.navImportant:
+      typeOfLoad = "important";
+      break;
+
+    default:
+      typeOfLoad = "all";
+      break;
+  }
+
+  document.querySelector(".nav-item.active").classList.remove("active");
+  element.classList.add("active");
+  MainUI.viewTitle.textContent = element.textContent.trim().slice(0, -1);
+  await loadTasks(typeOfLoad);
+}
+
+// Navigation Events
+MainUI.navAll.addEventListener("click", () => navigateTo(MainUI.navAll));
+MainUI.navToday.addEventListener("click", () => navigateTo(MainUI.navToday));
+MainUI.navTomorrow.addEventListener("click", () =>
+  navigateTo(MainUI.navTomorrow),
+);
+MainUI.navEarlier.addEventListener("click", () =>
+  navigateTo(MainUI.navEarlier),
+);
+MainUI.navImportant.addEventListener("click", () =>
+  navigateTo(MainUI.navImportant),
+);
