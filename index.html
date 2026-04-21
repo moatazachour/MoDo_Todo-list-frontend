@@ -359,13 +359,6 @@
             </svg>
           </button>
         </div>
-
-        <!--
-      JS mapping:
-        POST /api/Tasks        → Add new task
-        PUT  /api/Tasks/{id}   → Update existing task
-      Hidden field task-id is empty for new, filled for edit.
-    -->
         <form id="task-form" data-mode="add" novalidate>
           <!-- Hidden: task ID for edit mode -->
           <input type="hidden" id="task-id" name="TaskID" value="" />
@@ -488,7 +481,6 @@
         </div>
         <div class="confirm-actions">
           <button class="btn-cancel" id="confirm-cancel">Keep It</button>
-          <!-- JS: on click, call DELETE /api/Tasks/{taskID} -->
           <button class="btn-danger" id="confirm-delete">Delete</button>
         </div>
       </div>

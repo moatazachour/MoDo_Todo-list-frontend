@@ -76,6 +76,12 @@ const ModalUI = {
   modalSubmit: document.querySelector("#modal-submit"),
 };
 
+const ConfirmUI = {
+  confirmOverlay: document.querySelector("#confirm-overlay"),
+  confirmDelete: document.querySelector("#confirm-delete"),
+  confirmCancel: document.querySelector("#confirm-cancel"),
+};
+
 const toastContainer = document.querySelector("#toast-container");
 
 function showToast(message, type = "success", duration = 5000) {
@@ -503,7 +509,7 @@ function getTaskFromForm() {
 
   const title = ModalUI.taskTitle.value.trim();
   if (!title) {
-    ModalUI.modalError.style.display = "flex";
+    ModalUI.modalError.style.display = "block";
     ModalUI.modalError.textContent = "Title is required!";
     return null;
   }
@@ -601,6 +607,43 @@ async function submitTask(event) {
 }
 
 ModalUI.taskForm.addEventListener("submit", submitTask);
+
+let currentTaskIdToDelete;
+
+function openDeleteConfirm(taskId) {
+  currentTaskIdToDelete = taskId;
+  ConfirmUI.confirmOverlay.classList.add("open");
+}
+
+async function deleteTask(taskId) {
+  try {
+    const response = await fetch(`${API_BASE}/Tasks/${taskId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Delete Task Failed!", "error");
+      return;
+    }
+
+    ConfirmUI.confirmOverlay.classList.remove("open");
+    const currentNav = document.querySelector(".nav-item.active");
+    navigateTo(currentNav);
+    firstTasksLoad();
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+ConfirmUI.confirmDelete.addEventListener("click", () =>
+  deleteTask(currentTaskIdToDelete),
+);
+
+ConfirmUI.confirmCancel.addEventListener("click", () => {
+  ConfirmUI.confirmOverlay.classList.remove("open");
+});
 
 MainUI.taskList.addEventListener("click", (event) => {
   const btn = event.target.closest("[data-action]");
