@@ -915,8 +915,83 @@ async function navigateTo(element) {
   document.querySelector(".nav-item.active").classList.remove("active");
   element.classList.add("active");
   MainUI.viewTitle.textContent = element.textContent.trim().slice(0, -1);
+  MainUI.searchInput.value = "";
   await loadTasks(typeOfLoad);
 }
+
+function getTodayTasks(allTasks) {
+  let today = new Date();
+
+  return allTasks.filter(
+    (task) =>
+      new Date(task.dueDate).toLocaleDateString() ===
+      today.toLocaleDateString(),
+  );
+}
+
+function getTomorrowsTasks(allTasks) {
+  let today = new Date();
+  let tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  return allTasks.filter(
+    (task) =>
+      new Date(task.dueDate).toLocaleDateString() ===
+      tomorrow.toLocaleDateString(),
+  );
+}
+
+function getEarlierTasks(allTasks) {
+  let today = new Date();
+  return allTasks.filter((task) => new Date(task.dueDate) < today);
+}
+
+function getImportantTasks(allTasks) {
+  return allTasks.filter((task) => task.isImportant);
+}
+
+function render() {
+  const q = MainUI.searchInput.value.trim();
+  let tasksToFilter;
+  let filtered;
+  const currentNav = document.querySelector(".nav-item.active");
+
+  switch (currentNav) {
+    case MainUI.navAll:
+      tasksToFilter = allTasks;
+      break;
+
+    case MainUI.navToday:
+      tasksToFilter = getTodayTasks(allTasks);
+      break;
+
+    case MainUI.navTomorrow:
+      tasksToFilter = getTomorrowsTasks(allTasks);
+      break;
+
+    case MainUI.navEarlier:
+      tasksToFilter = getEarlierTasks(allTasks);
+      break;
+
+    case MainUI.navImportant:
+      tasksToFilter = getImportantTasks(allTasks);
+      break;
+
+    default:
+      tasksToFilter = allTasks;
+      break;
+  }
+
+  const query = q.toLowerCase();
+
+  filtered = tasksToFilter.filter((task) =>
+    task.title.toLowerCase().includes(query),
+  );
+
+  renderTasks(filtered);
+}
+
+MainUI.searchInput.addEventListener("input", render);
 
 // Navigation Events
 MainUI.navAll.addEventListener("click", () => navigateTo(MainUI.navAll));
