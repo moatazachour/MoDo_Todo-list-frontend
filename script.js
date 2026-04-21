@@ -64,6 +64,16 @@ const ModalUI = {
   modalOverlay: document.querySelector("#modal-overlay"),
   modalTitle: document.querySelector("#modal-heading"),
   modalClose: document.querySelector("#modal-close"),
+  taskForm: document.querySelector("#task-form"),
+  taskId: document.querySelector("#task-id"),
+  taskTitle: document.querySelector("#task-title"),
+  taskDescription: document.querySelector("#task-description"),
+  taskDueDate: document.querySelector("#task-due-date"),
+  taskStatus: document.querySelector("#task-status"),
+  taskIsImportant: document.querySelector("#task-is-important"),
+  modalError: document.querySelector("#modal-error"),
+  modalCancel: document.querySelector("#modal-cancel"),
+  modalSubmit: document.querySelector("#modal-submit"),
 };
 
 const toastContainer = document.querySelector("#toast-container");
@@ -417,15 +427,155 @@ ModalUI.modalClose.addEventListener("click", () => {
   ModalUI.modalOverlay.classList.remove("open");
 });
 
+function createStatusOption(id, statusName) {
+  const statusOption = document.createElement("option");
+  statusOption.value = statusName;
+  statusOption.textContent = statusName;
+  statusOption.dataset.statusId = id;
+
+  return statusOption;
+}
+
+function loadStatuses() {
+  ModalUI.taskStatus.options.length = 0;
+  const inProgressStatusOption = createStatusOption(1, "In Progress");
+  const completeStatusOption = createStatusOption(2, "Completed");
+  const overdueStatusOption = createStatusOption(3, "Overdue");
+  ModalUI.taskStatus.appendChild(inProgressStatusOption);
+  ModalUI.taskStatus.appendChild(completeStatusOption);
+  ModalUI.taskStatus.appendChild(overdueStatusOption);
+}
+
 async function loadModalData(taskId) {
   const currentTask = await getTaskById(taskId);
+  ModalUI.taskId.value = taskId;
+  ModalUI.taskTitle.value = currentTask.title;
+  ModalUI.taskDescription.value = currentTask.description;
+  ModalUI.taskDueDate.value = currentTask.dueDate;
+  ModalUI.taskStatus.value = currentTask.statusName;
+  ModalUI.taskIsImportant.checked = currentTask.isImportant;
+}
+
+function emptyModal() {
+  ModalUI.taskId.value = null;
+  ModalUI.taskTitle.value = "";
+  ModalUI.taskDescription.value = "";
+  ModalUI.taskDueDate.value = new Date().toISOString().split("T")[0];
+  ModalUI.taskIsImportant.checked = false;
+}
+
+function openAddModal() {
+  ModalUI.modalOverlay.classList.add("open");
+  ModalUI.taskForm.dataset.mode = "add";
+  ModalUI.modalTitle.textContent = "Add Task";
+  ModalUI.modalSubmit.querySelector("span").textContent = "Add Task";
+  ModalUI.modalSubmit.querySelector("svg").style.display = "";
+  emptyModal();
+  loadStatuses();
 }
 
 async function openEditModal(taskId) {
   ModalUI.modalOverlay.classList.add("open");
+  ModalUI.taskForm.dataset.mode = "edit";
   ModalUI.modalTitle.textContent = "Edit Task";
+  ModalUI.modalSubmit.querySelector("span").textContent = "Save Changes";
+  ModalUI.modalSubmit.querySelector("svg").style.display = "none";
+  loadStatuses();
   loadModalData(taskId);
 }
+
+function getTaskFromForm() {
+  const task = {};
+  task.taskID = parseInt(ModalUI.taskId.value) || null;
+
+  const title = ModalUI.taskTitle.value.trim();
+  // if (!title) {
+  //   ModalUI.modalError.style.display = "";
+  //   ModalUI.modalError.textContent = "Title is required!";
+  //   return null;
+  // }
+  task.title = title;
+
+  task.description = ModalUI.taskDescription.value.trim();
+  task.dueDate = ModalUI.taskDueDate.value;
+  task.issueDate = new Date();
+  task.statusID = parseInt(
+    ModalUI.taskStatus.selectedOptions[0].dataset.statusId,
+  );
+  task.isImportant = ModalUI.taskIsImportant.checked;
+
+  return task;
+}
+
+async function addTask() {
+  const newTask = getTaskFromForm();
+
+  try {
+    const response = await fetch(`${API_BASE}/Tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: newTask.title,
+        description: newTask.description ?? "",
+        issueDate: new Date(),
+        dueDate: newTask.dueDate,
+        isImportant: newTask.isImportant,
+        statusID: newTask.statusID,
+        userID: currentUserObj.id,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Task Adding Failed", "error");
+    }
+    return true;
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+async function updateTask() {
+  const updatedTask = getTaskFromForm();
+
+  try {
+    const response = await fetch(`${API_BASE}/Tasks/${updatedTask.taskID}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskID: updatedTask.taskID,
+        title: updatedTask.title,
+        description: updatedTask.description ?? "",
+        dueDate: updatedTask.dueDate,
+        isImportant: updatedTask.isImportant,
+        statusID: updatedTask.statusID,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Task Update Failed", "error");
+      return;
+    }
+  } catch (error) {
+    showToast(error, "error");
+  }
+}
+
+function submitTask() {
+  const mode = ModalUI.taskForm.dataset.mode;
+  let closeModal = true;
+  if (mode === "add") addTask();
+
+  if (mode === "edit") updateTask();
+
+  ModalUI.modalOverlay.classList.remove("open");
+  const currentNav = document.querySelector(".nav-item.active");
+  navigateTo(currentNav);
+  firstTasksLoad();
+}
+
+ModalUI.taskForm.addEventListener("submit", submitTask);
 
 MainUI.taskList.addEventListener("click", (event) => {
   const btn = event.target.closest("[data-action]");
@@ -439,6 +589,8 @@ MainUI.taskList.addEventListener("click", (event) => {
   if (action === "edit") openEditModal(taskId);
   if (action === "delete") openDeleteConfirm(taskId);
 });
+
+MainUI.btnAddTask.addEventListener("click", openAddModal);
 
 function renderTasks(tasks) {
   MainUI.loadingSpinner.style.display = "none";

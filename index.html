@@ -366,7 +366,7 @@
         PUT  /api/Tasks/{id}   → Update existing task
       Hidden field task-id is empty for new, filled for edit.
     -->
-        <form id="task-form" novalidate>
+        <form id="task-form" data-mode="add" novalidate>
           <!-- Hidden: task ID for edit mode -->
           <input type="hidden" id="task-id" name="TaskID" value="" />
 
@@ -411,18 +411,12 @@
               <label for="task-status"
                 >Status <span style="color: var(--danger)">*</span></label
               >
-              <!--
-            JS: populate <option> elements dynamically from your statuses data.
-            Each option: value = status.StatusID, text = status.StatusName
-            Example statuses based on DB: Pending, In Progress, Done, etc.
-          -->
               <select
                 class="modal-select"
                 id="task-status"
                 name="StatusID"
                 required
               >
-                <option value="" disabled selected>Select a status…</option>
                 <!-- JS: populated dynamically -->
               </select>
             </div>
@@ -469,7 +463,7 @@
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Add Task
+              <span>Add Task</span>
             </button>
           </div>
         </form>
