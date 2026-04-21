@@ -196,7 +196,6 @@
             <div class="user-name" id="user-display-name">—</div>
             <div class="user-email" id="user-display-email">—</div>
           </div>
-          <!-- JS: logout — DELETE token/session, show auth screen -->
           <button
             class="btn-icon"
             id="btn-logout"
@@ -543,7 +542,30 @@
         </div>
 
         <div class="modal-field">
-          <label for="profile-password"
+          <label for="profile-current-password"
+            >Current Password
+            <span
+              style="
+                color: var(--text-faint);
+                font-weight: 400;
+                text-transform: none;
+                letter-spacing: 0;
+              "
+              >(leave blank to keep)</span
+            ></label
+          >
+          <input
+            class="modal-input"
+            type="password"
+            id="profile-current-password"
+            name="CurrentPassword"
+            placeholder="Current password…"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <div class="modal-field">
+          <label for="profile-new-password"
             >New Password
             <span
               style="
@@ -558,7 +580,7 @@
           <input
             class="modal-input"
             type="password"
-            id="profile-password"
+            id="profile-new-password"
             name="Password"
             placeholder="New password…"
             autocomplete="new-password"
@@ -570,6 +592,7 @@
           role="alert"
           style="
             display: none;
+            color: red;
             font-size: 12.5px;
             padding: 9px 13px;
             border-radius: 8px;

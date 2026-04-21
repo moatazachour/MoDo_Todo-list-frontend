@@ -28,6 +28,26 @@ const AuthUI = {
   btnSignup: document.querySelector("#btn-signup"),
 };
 
+const ProfileUI = {
+  profileOverlay: document.querySelector("#profile-overlay"),
+  profilePanel: document.querySelector("#profile-panel"),
+  profileAvatar: document.querySelector("#profile-avatar-lg"),
+  profileClose: document.querySelector("#profile-close"),
+  profileForm: document.querySelector("#profile-form"),
+  profileUserId: document.querySelector("#profile-user-id"),
+  profileUsername: document.querySelector("#profile-username"),
+  profileEmail: document.querySelector("#profile-email"),
+  profileCurrentPassword: document.querySelector("#profile-current-password"),
+  profileNewPassword: document.querySelector("#profile-new-password"),
+  profileMessage: document.querySelector("#profile-message"),
+  btnDeleteAccount: document.querySelector("#btn-delete-account"),
+
+  //   #profile-password          → optional new password
+  //   On submit → PUT /api/Users/{id}  { Username, Email, Password? }
+  //   #profile-message           → show error/success feedback
+  //   #btn-delete-account        → confirm → DELETE /api/Users/{id} → logout
+};
+
 const MainUI = {
   appScreen: document.querySelector("#app"),
 
@@ -46,6 +66,7 @@ const MainUI = {
   userDisplayName: document.querySelector("#user-display-name"),
   userDisplayEmail: document.querySelector("#user-display-email"),
   btnLogout: document.querySelector("#btn-logout"),
+  sidebarUserTile: document.querySelector("#sidebar-user-tile"),
 
   // Main Content
   // Header
@@ -263,6 +284,134 @@ function logout() {
   localStorage.removeItem("currentUser");
 }
 
+ProfileUI.profileClose.addEventListener("click", () => {
+  ProfileUI.profileOverlay.classList.remove("open");
+  ProfileUI.profilePanel.classList.remove("open");
+});
+
+function emptyProfilePanel() {
+  ProfileUI.profileAvatar.textContent = "?";
+
+  ProfileUI.profileUserId.value = null;
+  ProfileUI.profileUsername.value = "";
+  ProfileUI.profileEmail.value = "";
+  ProfileUI.profileCurrentPassword.value = "";
+  ProfileUI.profileNewPassword.value = "";
+  ProfileUI.profileMessage.style.display = "none";
+  ProfileUI.profileMessage.textContent = "";
+}
+
+function openProfilePanel() {
+  emptyProfilePanel();
+  ProfileUI.profileOverlay.classList.add("open");
+  ProfileUI.profilePanel.classList.add("open");
+  const usernameFirstInitials = currentUserObj.userName
+    .slice(0, 2)
+    .toUpperCase();
+  ProfileUI.profileAvatar.textContent = usernameFirstInitials;
+
+  ProfileUI.profileUserId.value = currentUserObj.id;
+  ProfileUI.profileUsername.value = currentUserObj.userName;
+  ProfileUI.profileEmail.value = currentUserObj.email;
+}
+
+function showProfileMessage(message) {
+  ProfileUI.profileMessage.style.display = "block";
+  ProfileUI.profileMessage.textContent = message;
+}
+
+function validateCurrentPassword(password) {
+  return currentUserObj.password === password;
+}
+
+function getProfileFormData() {
+  const updatedUser = {};
+  const userId = parseInt(ProfileUI.profileUserId.value);
+
+  const username = ProfileUI.profileUsername.value.trim();
+  if (!username) {
+    showProfileMessage("Username is required!");
+    return null;
+  }
+
+  const email = ProfileUI.profileEmail.value.trim();
+  if (!email || !email.includes("@")) {
+    showProfileMessage("Valid email is required");
+    return null;
+  }
+
+  const currentPassword = ProfileUI.profileCurrentPassword.value.trim();
+  if (!validateCurrentPassword(currentPassword)) {
+    showProfileMessage("Current password is wrong!");
+    return null;
+  }
+
+  const newPassword = ProfileUI.profileNewPassword.value.trim();
+
+  updatedUser.userID = userId;
+  updatedUser.userName = username;
+  updatedUser.email = email;
+  updatedUser.currentPassword = currentPassword;
+  updatedUser.newPassword = newPassword;
+
+  return updatedUser;
+}
+
+function updateLocalStorage(updatedUser) {
+  currentUserObj = updatedUser;
+  localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+}
+
+function refreshPageAfterUpdatingProfile() {
+  ProfileUI.profileOverlay.classList.remove("open");
+  ProfileUI.profilePanel.classList.remove("open");
+  loadUserSidebar(currentUserObj);
+}
+
+async function updateProfile(event) {
+  event.preventDefault();
+
+  const updatedUser = getProfileFormData();
+
+  if (!updatedUser) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/Users/${updatedUser.userID}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userID: updatedUser.userID,
+        userName: updatedUser.userName,
+        password: updatedUser.newPassword || updatedUser.currentPassword,
+        email: updatedUser.email,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showProfileMessage(err);
+      return;
+    }
+
+    showToast("Profile Updated");
+    const data = await response.json();
+
+    const updatedLoggedUser = {
+      id: data.userID,
+      userName: data.userName,
+      password: data.password,
+      email: data.email,
+    };
+    updateLocalStorage(updatedLoggedUser);
+    refreshPageAfterUpdatingProfile();
+  } catch (error) {
+    showProfileMessage(error.message);
+  }
+}
+
+ProfileUI.profileForm.addEventListener("submit", updateProfile);
+
+MainUI.sidebarUserTile.addEventListener("click", openProfilePanel);
 AuthUI.formSignup.addEventListener("submit", signUp);
 AuthUI.formLogin.addEventListener("submit", login);
 
