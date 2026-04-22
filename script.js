@@ -540,7 +540,9 @@ async function getTaskById(taskId) {
     }
 
     return await response.json();
-  } catch (error) {}
+  } catch (error) {
+    showToast(error, "error");
+  }
 }
 
 async function loadTasks(typeOfLoad) {
