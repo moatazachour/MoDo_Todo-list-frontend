@@ -48,11 +48,6 @@ const ProfileUI = {
   profileNewPassword: document.querySelector("#profile-new-password"),
   profileMessage: document.querySelector("#profile-message"),
   btnDeleteAccount: document.querySelector("#btn-delete-account"),
-
-  //   #profile-password          → optional new password
-  //   On submit → PUT /api/Users/{id}  { Username, Email, Password? }
-  //   #profile-message           → show error/success feedback
-  //   #btn-delete-account        → confirm → DELETE /api/Users/{id} → logout
 };
 
 const MainUI = {
@@ -108,6 +103,7 @@ const ConfirmUI = {
   confirmOverlay: document.querySelector("#confirm-overlay"),
   confirmDelete: document.querySelector("#confirm-delete"),
   confirmCancel: document.querySelector("#confirm-cancel"),
+  confirmTitle: document.querySelector(".confirm-title"),
 };
 
 const toastContainer = document.querySelector("#toast-container");
@@ -420,6 +416,33 @@ async function updateProfile(event) {
     refreshPageAfterUpdatingProfile();
   } catch (error) {
     showProfileMessage(error.message);
+  }
+}
+
+function openDeleteProfile() {
+  ConfirmUI.confirmOverlay.classList.add("open");
+  ConfirmUI.confirmTitle.textContent = "Delete Account?";
+}
+
+async function deleteProfile() {
+  try {
+    const response = await fetch(`${API_BASE}/Users/${currentUserObj.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      showToast(err || "Delete Account Failed", "error");
+      return;
+    }
+
+    ProfileUI.profileOverlay.classList.remove("open");
+    ProfileUI.profilePanel.classList.remove("open");
+    ConfirmUI.confirmOverlay.classList.remove("open");
+    logout();
+  } catch (error) {
+    showToast(error, "error");
   }
 }
 
@@ -802,9 +825,10 @@ async function submitTask(event) {
 
 let currentTaskIdToDelete;
 
-function openDeleteConfirm(taskId) {
+function openDeleteTask(taskId) {
   currentTaskIdToDelete = taskId;
   ConfirmUI.confirmOverlay.classList.add("open");
+  ConfirmUI.confirmTitle.textContent = "Delete Task?";
 }
 
 async function deleteTask(taskId) {
@@ -989,6 +1013,7 @@ ProfileUI.profileClose.addEventListener("click", () => {
   ProfileUI.profilePanel.classList.remove("open");
 });
 ProfileUI.profileForm.addEventListener("submit", updateProfile);
+ProfileUI.btnDeleteAccount.addEventListener("click", openDeleteProfile);
 
 // --- Task Modal ---
 MainUI.btnAddTask.addEventListener("click", openAddModal);
@@ -1006,9 +1031,11 @@ document.addEventListener("keydown", (event) => {
 });
 
 // --- Delete Confirm ---
-ConfirmUI.confirmDelete.addEventListener("click", () =>
-  deleteTask(currentTaskIdToDelete),
-);
+ConfirmUI.confirmDelete.addEventListener("click", () => {
+  if (ConfirmUI.confirmTitle.textContent === "Delete Task?")
+    deleteTask(currentTaskIdToDelete);
+  else deleteProfile();
+});
 ConfirmUI.confirmCancel.addEventListener("click", () => {
   ConfirmUI.confirmOverlay.classList.remove("open");
 });
@@ -1024,7 +1051,7 @@ MainUI.taskList.addEventListener("click", (event) => {
   if (action === "toggle-important") toggleImportantState(taskId);
   if (action === "toggle-complete") toggleCompleteState(taskId);
   if (action === "edit") openEditModal(taskId);
-  if (action === "delete") openDeleteConfirm(taskId);
+  if (action === "delete") openDeleteTask(taskId);
 });
 
 // --- Search ---
