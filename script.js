@@ -533,7 +533,7 @@ async function getTaskById(taskId) {
       headers: { "Content-Type": "application/json" },
     });
 
-    if (!response) {
+    if (!response.ok) {
       const err = await response.text();
       showToast(err || "Can't fetch the current task.");
       return;
