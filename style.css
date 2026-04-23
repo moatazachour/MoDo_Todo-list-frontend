@@ -16,6 +16,9 @@
   --radius: 14px;
   --sidebar-w: 260px;
   --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  --secondary: #2b2f3d;
+  --secondary-hover: #363b4d;
+  --secondary-text: #cfd3e3;
 }
 
 /* ─── Reset ─────────────────────────────────────────────────── */
@@ -223,6 +226,7 @@ select {
   margin-top: 6px;
   width: 100%;
 }
+
 .btn-primary:hover {
   background: var(--accent-dim);
   transform: translateY(-1px);
@@ -235,6 +239,24 @@ select {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: var(--secondary-text);
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: var(--transition);
+  margin-top: 6px;
+  width: 100%;
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232, 201, 126, 0.25);
 }
 
 /* Auth error / message */

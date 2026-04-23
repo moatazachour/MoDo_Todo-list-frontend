@@ -8,7 +8,7 @@ const ICONS = {
   info: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
 };
 
-const API_BASE = "http://localhost:5047/api";
+const API_BASE = "http://modo-todolist.runasp.net/api";
 
 let currentUserObj;
 let allTasks = [];
@@ -33,6 +33,8 @@ const AuthUI = {
   signupEmail: document.querySelector("#signup-email"),
   signupPassword: document.querySelector("#signup-password"),
   btnSignup: document.querySelector("#btn-signup"),
+  // Demo Button
+  btnLoadDemo: document.querySelector("#btn-load-demo"),
 };
 
 const ProfileUI = {
@@ -112,7 +114,7 @@ const toastContainer = document.querySelector("#toast-container");
 // TOAST NOTIFICATIONS
 // =============================================================================
 
-function showToast(message, type = "success", duration = 5000) {
+function showToast(message, type = "success", duration = 3000) {
   const toast = document.createElement("div");
   toast.classList.add("toast", type);
 
@@ -1007,6 +1009,12 @@ AuthUI.tabSignup.addEventListener("click", toggleAuthTabs);
 AuthUI.formSignup.addEventListener("submit", signUp);
 AuthUI.formLogin.addEventListener("submit", login);
 MainUI.btnLogout.addEventListener("click", logout);
+AuthUI.btnLoadDemo.addEventListener("click", (event) => {
+  AuthUI.loginUsername.value = "demo";
+  AuthUI.loginPassword.value = "demo123";
+
+  showToast("Demo credentials loaded. Click Sign In.", "info");
+});
 
 // --- Profile ---
 MainUI.sidebarUserTile.addEventListener("click", openProfilePanel);
