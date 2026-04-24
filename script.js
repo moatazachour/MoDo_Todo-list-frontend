@@ -146,7 +146,6 @@ function validateUsername(username) {
     showToast("Username is empty!", "error");
     return false;
   }
-  // TODO: Database checking if username already exists
   return true;
 }
 
@@ -155,7 +154,6 @@ function validateEmail(email) {
     showToast("Valid email is required", "error");
     return false;
   }
-  // TODO: Database checking if email already exists
   return true;
 }
 
@@ -168,18 +166,16 @@ function validatePassword(password) {
 }
 
 function validateSigninInputs(username, email, password) {
-  const isUsernameValid = validateUsername(username);
-  const isEmailValid = validateEmail(email);
-  const isPasswordValid = validatePassword(password);
-
-  return isUsernameValid && isEmailValid && isPasswordValid;
+  if (!validateUsername(username)) return false;
+  if (!validateEmail(email)) return false;
+  if (!validatePassword(password)) return false;
+  return true;
 }
 
 function validateLoginInputs(username, password) {
-  const isUsernameValid = validateUsername(username);
-  const isPasswordValid = validatePassword(password);
-
-  return isUsernameValid && isPasswordValid;
+  if (!validateUsername(username)) return false;
+  if (!validatePassword(password)) return false;
+  return true;
 }
 
 // =============================================================================
@@ -639,8 +635,8 @@ async function toggleImportantState(taskId) {
     }
 
     const currentNav = document.querySelector(".nav-item.active");
-    navigateTo(currentNav);
-    firstTasksLoad();
+    await navigateTo(currentNav);
+    await firstTasksLoad();
   } catch (error) {
     showToast(error, "error");
   }
@@ -670,8 +666,8 @@ async function toggleCompleteState(taskId) {
     }
 
     const currentNav = document.querySelector(".nav-item.active");
-    navigateTo(currentNav);
-    firstTasksLoad();
+    await navigateTo(currentNav);
+    await firstTasksLoad();
   } catch (error) {
     showToast(error, "error");
   }
@@ -841,8 +837,8 @@ async function submitTask(event) {
 
   ModalUI.modalOverlay.classList.remove("open");
   const currentNav = document.querySelector(".nav-item.active");
-  navigateTo(currentNav);
-  firstTasksLoad();
+  await navigateTo(currentNav);
+  await firstTasksLoad();
 }
 
 // =============================================================================
@@ -872,8 +868,8 @@ async function deleteTask(taskId) {
 
     ConfirmUI.confirmOverlay.classList.remove("open");
     const currentNav = document.querySelector(".nav-item.active");
-    navigateTo(currentNav);
-    firstTasksLoad();
+    await navigateTo(currentNav);
+    await firstTasksLoad();
   } catch (error) {
     showToast(error, "error");
   }
