@@ -301,6 +301,18 @@ function logout() {
 // PROFILE PANEL
 // =============================================================================
 
+function isDemoAccount() {
+  if (currentUserObj.userName === "demo") {
+    showToast(
+      "This is a shared demo account, so username, email, and password can't be changed. Feel free to add, edit, and delete tasks.",
+      "info",
+      5000,
+    );
+    return true;
+  }
+  return false;
+}
+
 function emptyProfilePanel() {
   ProfileUI.profileAvatar.textContent = "?";
 
@@ -382,6 +394,7 @@ function refreshPageAfterUpdatingProfile() {
 
 async function updateProfile(event) {
   event.preventDefault();
+  if (isDemoAccount()) return;
 
   const updatedUser = getProfileFormData();
 
@@ -427,6 +440,8 @@ function openDeleteProfile() {
 }
 
 async function deleteProfile() {
+  if (isDemoAccount()) return;
+
   try {
     const response = await fetch(`${API_BASE}/Users/${currentUserObj.id}`, {
       method: "DELETE",
