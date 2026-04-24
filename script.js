@@ -304,7 +304,7 @@ function logout() {
 function isDemoAccount() {
   if (currentUserObj.userName === "demo") {
     showToast(
-      "This is a shared demo account, so username, email, and password can't be changed. Feel free to add, edit, and delete tasks.",
+      "The demo account is shared, so its credentials are locked. Create your own account to change them freely.",
       "info",
       5000,
     );
