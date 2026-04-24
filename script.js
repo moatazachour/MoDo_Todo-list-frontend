@@ -893,13 +893,15 @@ function renderTasks(tasks) {
   MainUI.loadingSpinner.style.display = "none";
   const taskCount = tasks.length;
   document.querySelector(".nav-item.active .nav-badge").textContent = taskCount;
+
+  MainUI.taskList.innerHTML = "";
+
   if (taskCount === 0) {
     MainUI.emptyState.style.display = "flex";
     return;
   }
 
   MainUI.emptyState.style.display = "none";
-  MainUI.taskList.innerHTML = "";
 
   tasks.forEach((task) => {
     const clone = MainUI.taskCardTemplate.content.cloneNode(true);
