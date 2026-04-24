@@ -715,6 +715,7 @@ function emptyModal() {
   ModalUI.taskTitle.value = "";
   ModalUI.taskDescription.value = "";
   ModalUI.taskDueDate.value = new Date().toISOString().split("T")[0];
+  ModalUI.taskStatus.value = "In Progress";
   ModalUI.taskIsImportant.checked = false;
 }
 
@@ -882,7 +883,7 @@ async function deleteTask(taskId) {
 // =============================================================================
 
 function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString("en-US", {
+  return new Date(dateString).toLocaleDateString("en-GB", {
     year: "numeric",
     month: "short",
     day: "numeric",
