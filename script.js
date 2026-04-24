@@ -739,7 +739,8 @@ async function openEditModal(taskId) {
   ModalUI.modalError.style.display = "none";
 
   loadStatuses();
-  loadModalData(taskId);
+  emptyModal();
+  await loadModalData(taskId);
 }
 
 function getTaskFromForm() {
