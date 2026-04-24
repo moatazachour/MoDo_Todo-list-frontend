@@ -77,9 +77,11 @@ select {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg);
   position: relative;
   overflow: hidden;
+  padding: 16px;
 }
 
 /* decorative blobs */
@@ -284,6 +286,7 @@ select {
 #app {
   display: none; /* JS: set to 'flex' after login */
   height: 100vh;
+  height: 100dvh;
 }
 #app.visible {
   display: flex;
@@ -472,6 +475,44 @@ select {
   flex-direction: column;
   overflow: hidden;
   background: var(--bg);
+}
+
+/* Sidebar overlay (mobile backdrop) — only visible within mobile MQ */
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 49;
+  animation: fadeIn 0.18s ease both;
+}
+
+/* Hamburger menu button */
+#btn-menu-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+#btn-menu-toggle:hover {
+  background: var(--surface2);
+  border-color: var(--text-faint);
+}
+#btn-menu-toggle svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 /* Top bar */
@@ -1301,36 +1342,282 @@ select {
 
 /* JS NOTE: all input IDs are prefixed profile- for the edit user form */
 
-/* ─── Responsive ─────────────────────────────────────────── */
-@media (max-width: 700px) {
+/* ════════════════════════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════════════════════════ */
+
+/* ─── Tablet (≤ 1024px) ──────────────────────────────────── */
+@media (max-width: 1024px) {
   :root {
-    --sidebar-w: 0px;
+    --sidebar-w: 220px;
   }
   #sidebar {
+    padding: 24px 12px;
+  }
+  .sidebar-logo {
+    font-size: 26px;
+    padding: 0 8px 16px;
+  }
+  #topbar {
+    padding: 18px 22px;
+    gap: 12px;
+  }
+  #view-title {
+    font-size: 22px;
+  }
+  .search-wrap {
+    width: 180px;
+  }
+  #task-area {
+    padding: 20px 22px;
+  }
+}
+
+/* ─── Mobile (≤ 768px) ───────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Sidebar becomes an off-canvas drawer */
+  #sidebar {
     position: fixed;
-    left: -280px;
+    left: 0;
     top: 0;
     bottom: 0;
     z-index: 50;
-    transition: left var(--transition);
-    width: 260px;
+    width: 272px;
+    max-width: 82vw;
+    min-width: 0;
+    padding: 24px 14px;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #sidebar.open {
-    left: 0;
+    transform: translateX(0);
     box-shadow: 12px 0 40px rgba(0, 0, 0, 0.5);
   }
-  #topbar {
-    padding: 16px 20px;
+  #sidebar-overlay.open {
+    display: block;
   }
+
+  /* Show hamburger */
+  #btn-menu-toggle {
+    display: inline-flex;
+  }
+
+  /* Top bar wraps: [menu] [title] [add] / [search spans full width] */
+  #topbar {
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    gap: 10px 12px;
+    row-gap: 10px;
+  }
+  #view-title {
+    font-size: 20px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .search-wrap {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+  }
+  #search-input {
+    padding: 11px 14px 11px 36px;
+    font-size: 14px;
+  }
+  #btn-add-task {
+    padding: 10px 14px;
+  }
+
   #task-area {
-    padding: 16px 20px;
+    padding: 16px 18px;
+  }
+
+  /* Task cards compact on mobile */
+  .task-card {
+    padding: 14px 14px;
+    gap: 12px;
+    border-radius: 12px;
+  }
+  .task-title {
+    font-size: 14px;
+  }
+  .task-description {
+    font-size: 12px;
+  }
+  .task-actions {
+    gap: 2px;
+  }
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Modal */
+  #task-modal {
+    max-width: 100%;
+    padding: 22px 20px 20px;
+    margin: 12px;
+    max-height: calc(100dvh - 24px);
+    border-radius: 18px;
+  }
+  .modal-header {
+    margin-bottom: 20px;
+  }
+  .modal-title {
+    font-size: 18px;
+  }
+  .modal-body {
+    gap: 14px;
   }
   .modal-row {
     grid-template-columns: 1fr;
   }
-  #task-modal {
-    padding: 24px 20px;
+  .modal-footer {
+    padding-top: 18px;
+    gap: 8px;
+  }
+  .btn-ghost,
+  .btn-submit {
+    flex: 1;
+    justify-content: center;
+    padding: 11px 14px;
+  }
+
+  /* Profile panel */
+  #profile-panel {
+    width: 340px;
+    max-width: 88vw;
+    right: -100%;
+    padding: 24px 22px;
+  }
+
+  /* Confirm dialog */
+  #confirm-dialog {
     margin: 16px;
-    max-height: calc(100vh - 32px);
+    padding: 26px 22px;
+  }
+
+  /* Toast */
+  #toast-container {
+    right: 14px;
+    left: 14px;
+    bottom: 14px;
+    align-items: flex-end;
+  }
+  .toast {
+    max-width: 100%;
+  }
+
+  /* Auth card */
+  .auth-card {
+    padding: 36px 28px;
+    border-radius: 20px;
+  }
+}
+
+/* ─── Small mobile (≤ 480px) ─────────────────────────────── */
+@media (max-width: 480px) {
+  body {
+    font-size: 13.5px;
+  }
+
+  /* Hide "Add Task" label, keep only the + icon */
+  #btn-add-task {
+    padding: 10px 12px;
+  }
+  #btn-add-task .btn-label {
+    display: none;
+  }
+  #btn-add-task svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  #view-title {
+    font-size: 18px;
+  }
+
+  #topbar {
+    padding: 12px 14px;
+    gap: 8px 10px;
+  }
+  #task-area {
+    padding: 14px;
+  }
+
+  /* Profile panel full-width */
+  #profile-panel {
+    width: 100%;
+    max-width: 100%;
+    padding: 22px 18px;
+  }
+
+  /* Auth card — tighter padding */
+  #auth-screen {
+    padding: 12px;
+  }
+  .auth-card {
+    padding: 28px 22px;
+    border-radius: 18px;
+  }
+  .auth-logo {
+    font-size: 24px;
+  }
+  .auth-tabs {
+    margin: 22px 0 24px;
+  }
+
+  /* Confirm dialog */
+  #confirm-dialog {
+    padding: 22px 18px;
+    border-radius: 16px;
+  }
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  /* Task card: hide status pill on very small, keep the tag + actions */
+  .task-card {
+    padding: 13px 12px;
+    gap: 10px;
+  }
+  .task-meta {
+    gap: 6px;
+  }
+  .task-tag,
+  .task-status {
+    font-size: 11px;
+    padding: 2px 7px;
+  }
+
+  /* Modal */
+  #task-modal {
+    margin: 8px;
+    padding: 20px 16px 16px;
+    border-radius: 16px;
+    max-height: calc(100dvh - 16px);
+  }
+  .modal-input,
+  .modal-textarea,
+  .modal-select {
+    font-size: 16px; /* prevent iOS zoom on focus */
+    padding: 11px 13px;
+  }
+  .form-field input {
+    font-size: 16px;
+  }
+  #search-input {
+    font-size: 16px;
+  }
+}
+
+/* ─── Landscape small height (phones rotated) ───────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  #task-modal {
+    max-height: calc(100dvh - 16px);
+  }
+  .auth-card {
+    padding: 24px 28px;
   }
 }

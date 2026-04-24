@@ -55,6 +55,11 @@ const ProfileUI = {
 const MainUI = {
   appScreen: document.querySelector("#app"),
 
+  // Sidebar drawer controls (mobile)
+  sidebar: document.querySelector("#sidebar"),
+  sidebarOverlay: document.querySelector("#sidebar-overlay"),
+  btnMenuToggle: document.querySelector("#btn-menu-toggle"),
+
   // Sidebar
   navAll: document.querySelector("#nav-all"),
   badgeAll: document.querySelector("#badge-all"),
@@ -1017,7 +1022,29 @@ async function navigateTo(element) {
   element.classList.add("active");
   MainUI.viewTitle.textContent = element.textContent.trim().slice(0, -1);
   MainUI.searchInput.value = "";
+  closeSidebar();
   await loadTasks(typeOfLoad);
+}
+
+// =============================================================================
+// MOBILE SIDEBAR DRAWER
+// =============================================================================
+
+function openSidebar() {
+  MainUI.sidebar.classList.add("open");
+  MainUI.sidebarOverlay.classList.add("open");
+  MainUI.btnMenuToggle.setAttribute("aria-expanded", "true");
+}
+
+function closeSidebar() {
+  MainUI.sidebar.classList.remove("open");
+  MainUI.sidebarOverlay.classList.remove("open");
+  MainUI.btnMenuToggle.setAttribute("aria-expanded", "false");
+}
+
+function toggleSidebar() {
+  if (MainUI.sidebar.classList.contains("open")) closeSidebar();
+  else openSidebar();
 }
 
 // =============================================================================
@@ -1065,8 +1092,14 @@ document.addEventListener("keydown", (event) => {
 
     if (ProfileUI.profilePanel.classList.contains("open"))
       ProfileUI.profilePanel.classList.remove("open");
+
+    if (MainUI.sidebar.classList.contains("open")) closeSidebar();
   }
 });
+
+// --- Mobile Sidebar Drawer ---
+MainUI.btnMenuToggle.addEventListener("click", toggleSidebar);
+MainUI.sidebarOverlay.addEventListener("click", closeSidebar);
 
 // --- Delete Confirm ---
 ConfirmUI.confirmDelete.addEventListener("click", () => {
