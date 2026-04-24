@@ -305,7 +305,7 @@ select {
 
 .sidebar-logo {
   font-family: "Playfair Display", serif;
-  font-size: 22px;
+  font-size: 30px;
   color: var(--accent);
   padding: 0 10px 20px;
   letter-spacing: -0.3px;
