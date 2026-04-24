@@ -533,7 +533,12 @@ function updateBadges() {
       new Date(task.dueDate).toLocaleDateString() ===
       tomorrow.toLocaleDateString(),
   );
-  let earlierTasks = allTasks.filter((task) => new Date(task.dueDate) < today);
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  let earlierTasks = allTasks.filter(
+    (task) => new Date(task.dueDate) < startOfToday,
+  );
   let importantTasks = allTasks.filter((task) => task.isImportant);
 
   MainUI.badgeAll.textContent = allTasks.length;
@@ -935,8 +940,9 @@ function getTomorrowsTasks(allTasks) {
 }
 
 function getEarlierTasks(allTasks) {
-  let today = new Date();
-  return allTasks.filter((task) => new Date(task.dueDate) < today);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  return allTasks.filter((task) => new Date(task.dueDate) < startOfToday);
 }
 
 function getImportantTasks(allTasks) {
