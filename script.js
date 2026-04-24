@@ -1057,7 +1057,14 @@ ModalUI.modalCancel.addEventListener("click", () => {
 });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    ModalUI.modalOverlay.classList.remove("open");
+    if (ModalUI.modalOverlay.classList.contains("open"))
+      ModalUI.modalOverlay.classList.remove("open");
+
+    if (ProfileUI.profileOverlay.classList.contains("open"))
+      ProfileUI.profileOverlay.classList.remove("open");
+
+    if (ProfileUI.profilePanel.classList.contains("open"))
+      ProfileUI.profilePanel.classList.remove("open");
   }
 });
 
