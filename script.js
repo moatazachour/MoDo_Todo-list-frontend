@@ -306,7 +306,7 @@ function isDemoAccount() {
     showToast(
       "The demo account is shared, so its credentials are locked. Create your own account to change them freely.",
       "info",
-      5000,
+      6000,
     );
     return true;
   }
