@@ -2,8 +2,8 @@
 
 A clean, responsive task management web app with authentication, smart filtering, and a polished UX. Built with **vanilla JavaScript** on the frontend and an **ASP.NET Web API** backend.
 
-🔗 **Live Demo:** [mo-do-todo-list-frontend.vercel.app](https://mo-do-todo-list-frontend.vercel.app/)
-🔌 **Backend Repo:** [ToDoList_Server](https://github.com/moatazachour/ToDoList_Server.git)
+🔗 **Live Demo:** [mo-do-todo-list-frontend.vercel.app](https://mo-do-todo-list-frontend.vercel.app/)<br>
+🔌 **Backend Repo:** [ToDoList_Server](https://github.com/moatazachour/ToDoList_Server.git)<br>
 📘 **API Docs (Swagger):** [modo-todolist.runasp.net/swagger](http://modo-todolist.runasp.net/swagger/index.html)
 
 > 💡 Click **Load Demo** on the login screen to try the app instantly with shared credentials — no signup required.
