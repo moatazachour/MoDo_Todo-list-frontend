@@ -1,4 +1,4 @@
-# Mo-Do
+# MoDo
 
 A clean, responsive task management web app with authentication, smart filtering, and a polished UX. Built with **vanilla JavaScript** on the frontend and an **ASP.NET Web API** backend.
 
